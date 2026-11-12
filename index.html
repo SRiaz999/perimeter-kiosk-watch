@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perimeter · Kiosk Watch · Suban Riaz</title>
+<meta name="description" content="Real-time shoulder-surfing detection for ATMs and agent-banking kiosks. Runs entirely in the browser with Edge Impulse and WebAssembly: no cloud, no stored footage. Built by Suban Riaz.">
+<meta property="og:title" content="Perimeter · Kiosk Watch">
+<meta property="og:description" content="On-device AI that flags shoulder surfing at ATMs and agent-banking kiosks. No cloud, no stored footage.">
+<meta name="theme-color" content="#0b0d0f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%2353d18a' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='4' fill='%2353d18a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d0f; --panel:#121518; --panel-2:#181c20; --line:#23282d; --line-2:#30363d;
+    --text:#e7eaed; --muted:#8a939c; --soft:#b8c0c8;
+    --safe:#53d18a; --safe-dim:#53d18a1c;
+    --alert:#ff5a5f; --alert-dim:#ff5a5f1c;
+    --amber:#f5b84b;
+    --sans:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:var(--safe);text-decoration:none}
+  a:hover{text-decoration:underline}
+  ::selection{background:var(--safe);color:#04130a}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
+  code{font-family:var(--mono);font-size:.88em;background:var(--panel-2);border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--soft)}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:30;background:#0b0d0fe6;backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-weight:700;letter-spacing:.08em;color:var(--text);font-size:.9rem}
+  .brand:hover{text-decoration:none}
+  .brand small{color:var(--muted);font-weight:400;letter-spacing:.14em;font-size:.72rem}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--safe);box-shadow:0 0 0 0 var(--safe);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 #53d18a88}70%{box-shadow:0 0 0 8px #53d18a00}100%{box-shadow:0 0 0 0 #53d18a00}}
+  nav ul{display:flex;gap:26px;list-style:none;margin:0;padding:0;align-items:center}
+  nav ul a{color:var(--muted);font-size:.9rem}
+  nav ul a:hover{color:var(--text);text-decoration:none}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.95rem;padding:12px 20px;border-radius:9px;border:1px solid var(--line-2);color:var(--text);background:var(--panel-2);transition:transform .15s,border-color .15s,background .15s}
+  .btn:hover{text-decoration:none;transform:translateY(-1px);border-color:var(--muted)}
+  .btn.primary{background:var(--safe);border-color:var(--safe);color:#04130a}
+  .btn.primary:hover{background:#6be09c}
+  nav ul a.btn.primary{color:#04130a}
+  .btn.sm{padding:7px 14px;font-size:.84rem}
+  .btn svg{width:16px;height:16px}
+  @media (max-width:820px){nav ul li:not(:last-child){display:none}}
+
+  /* type */
+  .label{font-family:var(--mono);font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--safe);display:flex;align-items:center;gap:10px}
+  .label::before{content:"";width:22px;height:1px;background:var(--safe)}
+  h1{font-size:clamp(2.4rem,5.4vw,4rem);line-height:1.03;letter-spacing:-.03em;margin:18px 0 20px;font-weight:800}
+  h1 .g{color:var(--safe)} h1 .r{color:var(--alert)}
+  h2{font-size:clamp(1.8rem,3.2vw,2.5rem);line-height:1.12;letter-spacing:-.02em;margin:14px 0 18px;font-weight:800}
+  h3{font-size:1.1rem;margin:0 0 8px}
+  p{margin:0 0 14px}
+  .lede{font-size:1.14rem;color:var(--soft);max-width:34em}
+  .intro{color:var(--soft);max-width:46em;font-size:1.05rem}
+  section{padding:92px 0;border-bottom:1px solid var(--line)}
+
+  /* hero */
+  .hero{padding:64px 0 80px;position:relative;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(700px 420px at 80% 35%,#53d18a14,transparent 65%),
+      linear-gradient(#ffffff04 1px,transparent 1px),linear-gradient(90deg,#ffffff04 1px,transparent 1px);
+    background-size:auto,32px 32px,32px 32px}
+  .hero-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:48px;align-items:center;position:relative}
+  @media (max-width:960px){.hero-grid{grid-template-columns:1fr}}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 26px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font-family:var(--mono);font-size:.74rem;color:var(--soft);border:1px solid var(--line-2);border-radius:999px;padding:4px 11px;background:var(--panel)}
+  .byline{margin-top:22px;color:var(--muted);font-size:.9rem}
+  .byline b{color:var(--text)}
+
+  /* simulated console */
+  .console{background:var(--panel);border:1px solid var(--line-2);border-radius:14px;overflow:hidden;box-shadow:0 30px 80px -30px #000}
+  .console-top{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+  .console-top .brand{font-size:.74rem}
+  .pill{border:1px solid var(--line-2);border-radius:999px;padding:3px 10px}
+  .console-body{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;padding:12px}
+  @media (max-width:520px){.console-body{grid-template-columns:1fr}}
+  .feed{position:relative;aspect-ratio:4/3;border-radius:10px;background:#07090a;border:3px solid var(--safe);transition:border-color .3s, box-shadow .3s;overflow:hidden}
+  .feed.alert{border-color:var(--alert);box-shadow:0 0 30px -4px #ff5a5f66}
+  .feed svg{position:absolute;inset:0;width:100%;height:100%}
+  .feed .scan{position:absolute;left:0;right:0;height:40%;background:linear-gradient(#53d18a00,#53d18a12,#53d18a00);animation:scan 3s linear infinite}
+  .feed.alert .scan{background:linear-gradient(#ff5a5f00,#ff5a5f18,#ff5a5f00)}
+  @keyframes scan{from{top:-40%}to{top:100%}}
+  .person{transition:opacity .5s, transform .6s}
+  .intruder{opacity:0;transform:translateX(40px)}
+  .feed.alert .intruder{opacity:1;transform:none}
+  .banner{position:absolute;left:8px;right:8px;top:8px;background:var(--alert);color:#fff;font-family:var(--mono);font-size:.7rem;font-weight:700;padding:6px 9px;border-radius:6px;letter-spacing:.06em;transform:translateY(-140%);transition:transform .3s}
+  .feed.alert .banner{transform:none}
+  .rec{position:absolute;right:10px;bottom:8px;font-family:var(--mono);font-size:.62rem;color:var(--muted)}
+  .side{display:flex;flex-direction:column;gap:10px;font-family:var(--mono);font-size:.72rem}
+  .card{background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:10px}
+  .card .h{color:var(--muted);letter-spacing:.14em;font-size:.62rem;margin-bottom:8px}
+  .row{display:flex;justify-content:space-between;margin:3px 0}
+  .val{font-weight:700}
+  .val.ok{color:var(--safe)} .val.bad{color:var(--alert)}
+  .bar{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 2px}
+  .bar i{display:block;height:100%;background:var(--safe);transition:width .5s, background .3s}
+  .log{max-height:84px;overflow:hidden}
+  .log div{color:var(--soft);display:flex;justify-content:space-between;gap:6px;padding:2px 0;border-bottom:1px dashed var(--line)}
+  .log div b{color:var(--alert);font-weight:500}
+  .caption{font-size:.8rem;color:var(--muted);margin-top:10px;text-align:center}
+
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px}
+  @media (max-width:760px){.stats{grid-template-columns:1fr}}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px}
+  .stat .n{font-size:2.2rem;font-weight:800;letter-spacing:-.02em;color:var(--alert)}
+  .stat .n.g{color:var(--safe)}
+  .stat p{color:var(--soft);margin:4px 0 0;font-size:.95rem}
+  .stat small{display:block;color:var(--muted);font-size:.78rem;margin-top:8px}
+
+  /* classes */
+  .classes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:34px}
+  @media (max-width:760px){.classes{grid-template-columns:1fr}}
+  .cls{border-radius:14px;padding:24px;border:1px solid var(--line);background:var(--panel);position:relative;overflow:hidden}
+  .cls::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+  .cls.pos::before{background:var(--safe)} .cls.neg::before{background:var(--alert)}
+  .cls .tag{font-family:var(--mono);font-weight:700;font-size:.85rem;padding:3px 10px;border-radius:6px;display:inline-block;margin-bottom:12px}
+  .cls.pos .tag{background:var(--safe-dim);color:var(--safe)} .cls.neg .tag{background:var(--alert-dim);color:var(--alert)}
+  .cls ul{margin:10px 0 0;padding-left:18px;color:var(--soft)}
+  .note{margin-top:22px;display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;color:var(--soft)}
+  .note svg{flex:none;width:20px;height:20px;color:var(--safe);margin-top:3px}
+
+  /* pipeline */
+  .pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:36px}
+  @media (max-width:900px){.pipe{grid-template-columns:1fr 1fr;gap:16px}}
+  @media (max-width:560px){.pipe{grid-template-columns:1fr}}
+  .stage{position:relative;padding:22px;background:var(--panel);border:1px solid var(--line)}
+  .stage:first-child{border-radius:12px 0 0 12px} .stage:last-child{border-radius:0 12px 12px 0}
+  .stage + .stage{border-left:none}
+  @media (max-width:900px){.stage{border-radius:12px!important}.stage + .stage{border-left:1px solid var(--line)}}
+  .stage .k{font-family:var(--mono);font-size:.7rem;color:var(--safe);letter-spacing:.14em}
+  .stage h3{margin:8px 0 8px}
+  .stage p{color:var(--soft);font-size:.93rem;margin:0}
+  .stage .io{margin-top:14px;font-family:var(--mono);font-size:.72rem;color:var(--muted);border-top:1px dashed var(--line-2);padding-top:10px}
+  pre.flow{margin:28px 0 0;background:#07090a;border:1px solid var(--line);border-radius:12px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:.82rem;color:var(--soft);line-height:1.8}
+  pre.flow .a{color:var(--safe)} pre.flow .r{color:var(--alert)}
+  .pixel{margin-top:22px;display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  @media (max-width:640px){.pixel{grid-template-columns:1fr}}
+  .pixel .swatch{display:flex;gap:6px;font-family:var(--mono);font-size:.78rem}
+  .pixel .swatch span{padding:6px 9px;border-radius:6px;color:#fff}
+  .pixel p{margin:0;color:var(--soft);font-size:.94rem}
+
+  /* tech */
+  .tech{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:32px}
+  @media (max-width:900px){.tech{grid-template-columns:1fr 1fr}}
+  @media (max-width:520px){.tech{grid-template-columns:1fr}}
+  .t{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
+  .t .ic{font-family:var(--mono);font-size:.7rem;color:var(--amber);letter-spacing:.14em}
+  .t h3{margin:8px 0 6px}
+  .t p{color:var(--soft);font-size:.92rem;margin:0}
+
+  /* timeline */
+  .timeline{margin-top:36px;position:relative;padding-left:40px}
+  .timeline::before{content:"";position:absolute;left:12px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--safe),var(--line-2))}
+  .step{position:relative;margin-bottom:26px}
+  .step::before{content:attr(data-n);position:absolute;left:-40px;top:0;width:26px;height:26px;border-radius:50%;background:var(--bg);border:2px solid var(--safe);font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--safe);display:grid;place-items:center}
+  .step h3{font-size:1.06rem;margin-bottom:4px}
+  .step p{color:var(--soft);margin:0;max-width:48em}
+  .scores{display:inline-flex;gap:8px;margin-top:8px;font-family:var(--mono);font-size:.78rem}
+  .scores span{padding:3px 9px;border-radius:6px}
+
+  /* challenges */
+  .lessons{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;margin-top:34px}
+  @media (max-width:900px){.lessons{grid-template-columns:1fr}}
+  .lesson{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
+  .lesson.big{grid-row:span 3}
+  @media (max-width:900px){.lesson.big{grid-row:auto}}
+  .lesson .k{font-family:var(--mono);font-size:.7rem;color:var(--amber);letter-spacing:.14em}
+  .lesson h3{margin:8px 0 10px}
+  .lesson p{color:var(--soft);margin:0}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}
+  .compare div{border:1px solid var(--line-2);border-radius:10px;padding:12px;font-size:.88rem;color:var(--soft)}
+  .compare b{display:block;font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;margin-bottom:6px}
+  .compare .before b{color:var(--alert)} .compare .after b{color:var(--safe)}
+
+  /* limits + future */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:34px}
+  @media (max-width:860px){.two{grid-template-columns:1fr}}
+  .list{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px}
+  .list ul{list-style:none;margin:14px 0 0;padding:0}
+  .list li{padding:11px 0 11px 26px;border-top:1px solid var(--line);color:var(--soft);position:relative}
+  .list li::before{position:absolute;left:0;top:11px;font-family:var(--mono);font-weight:700}
+  .list.lim li::before{content:"!";color:var(--amber)}
+  .list.fut li::before{content:"→";color:var(--safe)}
+
+  /* try it */
+  .try{background:linear-gradient(135deg,#53d18a14,transparent 60%),var(--panel);border:1px solid var(--line-2);border-radius:18px;padding:40px;display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:center}
+  @media (max-width:860px){.try{grid-template-columns:1fr;padding:28px}}
+  .try ol{margin:0;padding-left:20px;color:var(--soft)}
+  .try ol li{margin-bottom:8px}
+  .try ol b{color:var(--text)}
+
+  footer{padding:44px 0 60px;color:var(--muted);font-size:.9rem;border-top:1px solid var(--line)}
+  footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+  footer ul{list-style:none;padding:0;margin:8px 0 0}
+  footer li{margin:4px 0}
+
+  .reveal{opacity:0;transform:translateY(16px);transition:opacity .6s, transform .6s}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="dot"></span>PERIMETER <small>· KIOSK WATCH</small></a>
+    <ul>
+      <li><a href="#problem">Problem</a></li>
+      <li><a href="#what">What it does</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#build">How I built it</a></li>
+      <li><a href="#lessons">Lessons</a></li>
+      <li><a class="btn primary sm" href="https://peaceful-smakager-9fbbc4.netlify.app/" target="_blank" rel="noopener">Live demo ↗</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="label">Edge AI · Fintech security</div>
+      <h1>Catch the <span class="r">second pair of eyes</span> before the PIN is gone.</h1>
+      <p class="lede">Perimeter is real-time shoulder-surfing detection for ATMs and agent-banking kiosks. It runs entirely in the browser, with <b>no cloud and no stored footage</b>.</p>
+      <div class="cta">
+        <a class="btn primary" href="https://peaceful-smakager-9fbbc4.netlify.app/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          Try the live demo
+        </a>
+        <a class="btn" href="#how">How it works</a>
+      </div>
+      <div class="chips">
+        <span class="chip">Edge Impulse</span><span class="chip">WebAssembly (SIMD)</span><span class="chip">Vanilla JS</span><span class="chip">Netlify</span>
+      </div>
+      <p class="byline">Designed and built by <b>Suban Riaz</b></p>
+    </div>
+
+    <div>
+      <div class="console" aria-label="Simulated preview of the Perimeter interface">
+        <div class="console-top">
+          <span class="brand"><span class="dot"></span>PERIMETER <small>· KIOSK WATCH</small></span>
+          <span class="pill">model ready</span>
+        </div>
+        <div class="console-body">
+          <div class="feed" id="feed">
+            <div class="scan"></div>
+            <svg viewBox="0 0 160 120" aria-hidden="true">
+              <rect x="0" y="92" width="160" height="28" fill="#101316"/>
+              <g class="person" fill="#3a434c">
+                <circle cx="80" cy="36" r="11"/><path d="M58 92c0-17 10-28 22-28s22 11 22 28z"/>
+              </g>
+              <g class="person intruder" fill="#5a3438">
+                <circle cx="122" cy="30" r="9"/><path d="M104 92c0-20 8-34 18-34s18 14 18 34z"/>
+              </g>
+            </svg>
+            <div class="banner">⚠ POSSIBLE SHOULDER SURFING</div>
+            <div class="rec">96×96 · on-device</div>
+          </div>
+          <div class="side">
+            <div class="card">
+              <div class="h">LIVE READOUT</div>
+              <div class="row"><span>Class</span><span class="val ok" id="cls">positive</span></div>
+              <div class="row"><span>Status</span><span class="val ok" id="st">safe</span></div>
+              <div class="bar"><i id="bar" style="width:99%"></i></div>
+              <div class="row"><span style="color:var(--muted)">confidence</span><span id="conf">0.99</span></div>
+            </div>
+            <div class="card">
+              <div class="h">EVENT LOG</div>
+              <div class="log" id="log"><div><span>Model loaded</span><span>ready</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">An illustrated preview of the interface. Try the <a href="https://peaceful-smakager-9fbbc4.netlify.app/" target="_blank" rel="noopener">live demo</a> with your own webcam.</p>
+    </div>
+  </div>
+</header>
+
+<section id="problem">
+  <div class="wrap reveal">
+    <div class="label">01 · The problem</div>
+    <h2>Shoulder surfing needs no tools, only a clear view.</h2>
+    <p class="intro">Shoulder surfing is when someone stands close to a kiosk and watches a customer type their PIN. It needs no hacking tools or skimming hardware, and it's invisible: privacy screens are passive, nothing flags when someone is peeking, and victims usually find out days later when unauthorized transactions appear.</p>
+    <p class="intro">The risk is highest at <b>agent-banking points</b>, where shopkeepers process transactions in open stalls with people standing close behind the customer.</p>
+    <div class="stats">
+      <div class="stat"><div class="n">731,000+</div><p>branchless-banking agents in Pakistan alone</p><small>State Bank of Pakistan data, reported by Business Recorder</small></div>
+      <div class="stat"><div class="n">$33.4B</div><p>global card-fraud losses in 2024</p><small>The Nilson Report</small></div>
+      <div class="stat"><div class="n g">0</div><p>frames uploaded, stored, or sent anywhere by Perimeter</p><small>All inference happens on the device</small></div>
+    </div>
+  </div>
+</section>
+
+<section id="what">
+  <div class="wrap reveal">
+    <div class="label">02 · What it does</div>
+    <h2>Every frame becomes one of two answers.</h2>
+    <p class="intro">Perimeter watches the area around a kiosk through a webcam and classifies every frame as one of two classes.</p>
+    <div class="classes">
+      <div class="cls pos">
+        <span class="tag">positive</span>
+        <h3>One person in frame: safe</h3>
+        <ul><li>Green border around the feed</li><li>Readout shows the confidence score</li></ul>
+      </div>
+      <div class="cls neg">
+        <span class="tag">negative</span>
+        <h3>Multiple people in frame: possible shoulder surfing</h3>
+        <ul><li>Red border and an alert banner</li><li>A timestamped entry in the event log</li></ul>
+      </div>
+    </div>
+    <div class="note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span><b style="color:var(--text)">Privacy by design.</b> No image or video frame is uploaded, stored, or sent anywhere. That protects customer privacy and keeps it working on unreliable internet.</span>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap reveal">
+    <div class="label">03 · How it works</div>
+    <h2>From webcam to verdict, inside one browser tab.</h2>
+    <div class="pipe">
+      <div class="stage"><div class="k">STAGE 1</div><h3>Capture</h3><p>The browser reads webcam frames with <code>getUserMedia</code>.</p><div class="io">→ live video frame</div></div>
+      <div class="stage"><div class="k">STAGE 2</div><h3>Pre-process</h3><p>Each frame is drawn onto a hidden 96×96 canvas and packed into the format the model expects.</p><div class="io">→ 9,216 RGB features</div></div>
+      <div class="stage"><div class="k">STAGE 3</div><h3>Classify</h3><p>The Edge Impulse model, compiled to WebAssembly, runs right in the tab.</p><div class="io">→ positive / negative + confidence</div></div>
+      <div class="stage"><div class="k">STAGE 4</div><h3>Alert</h3><p>If <code>negative</code> scores above the threshold (50%, 60% or 75%), the interface turns red and logs the event.</p><div class="io">→ max 1 log entry / 2 s</div></div>
+    </div>
+<pre class="flow"><span class="a">Webcam</span> → resize frame to 96×96 → pack RGB pixels into features
+       → <span class="a">Edge Impulse model (WebAssembly)</span> → positive / negative + confidence
+       → <span class="r">alert</span> if "negative" confidence ≥ threshold</pre>
+    <div class="pixel">
+      <div class="swatch"><span style="background:#c0392b">r</span><span style="background:#27ae60">g</span><span style="background:#2e6fd8">b</span></div>
+      <p>Each pixel becomes a single number: <code>(r &lt;&lt; 16) + (g &lt;&lt; 8) + b</code>. The input size and class labels are read from the model at load time, so a retrained model can be dropped in <b style="color:var(--text)">without any code changes</b>.</p>
+    </div>
+
+    <div class="tech">
+      <div class="t"><div class="ic">TRAIN</div><h3>Edge Impulse</h3><p>Data labeling, training, testing and export.</p></div>
+      <div class="t"><div class="ic">INFER</div><h3>WebAssembly</h3><p>Browser SIMD build for on-device inference.</p></div>
+      <div class="t"><div class="ic">APP</div><h3>HTML / CSS / JS</h3><p>No framework and no build step.</p></div>
+      <div class="t"><div class="ic">HOST</div><h3>Netlify</h3><p>HTTPS hosting, since browsers only allow camera access on secure origins.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="build">
+  <div class="wrap reveal">
+    <div class="label">04 · How I built it</div>
+    <h2>From a fintech question to a working prototype.</h2>
+    <div class="timeline">
+      <div class="step" data-n="1"><h3>Defined the problem</h3><p>I started from "where can low-cost edge AI close a real gap in fintech?" and chose shoulder surfing at kiosks because it's common, cheap for attackers, and currently undetected.</p></div>
+      <div class="step" data-n="2"><h3>Framed it as a classification task</h3><p>Instead of detecting and counting faces, I trained a simple whole-frame classifier: <i>one person</i> vs <i>multiple people</i>. It's lightweight, fast, and fits the use case.</p></div>
+      <div class="step" data-n="3"><h3>Built the dataset in Edge Impulse</h3><p>I labeled images as <code>positive</code> (single person) and <code>negative</code> (two or more people), then split them into training and test sets.</p></div>
+      <div class="step" data-n="4"><h3>Trained and tested the model</h3><p>I checked results in Edge Impulse's Live Classification view, where example images scored:</p>
+        <div class="scores"><span style="background:var(--safe-dim);color:var(--safe)">positive 0.99</span><span style="background:var(--alert-dim);color:var(--alert)">negative 0.92</span></div></div>
+      <div class="step" data-n="5"><h3>Exported for the browser</h3><p>I exported the model as <b>WebAssembly (browser, SIMD)</b>, which produces <code>edge-impulse-standalone.js</code> and <code>.wasm</code>.</p></div>
+      <div class="step" data-n="6"><h3>Built the web app</h3><p>Using Claude as an AI coding assistant, I translated my concept and functional requirements into a working web application. I guided its development by specifying the webcam capture, feature extraction and inference, and designed the security-console interface with live readouts, debugging panels and event logging.</p></div>
+      <div class="step" data-n="7"><h3>Deployed and recorded a demo</h3><p>I hosted it on Netlify to get an HTTPS link for camera access, then recorded a screen demo: one person shows <code>positive</code>, and a second person stepping in triggers <code>negative</code>.</p></div>
+      <div class="step" data-n="8"><h3>Iterated on the model</h3><p>I retrained and re-exported several times (deploy versions 3 to 6). Because the app reads its settings from the model, each new export only needed the <code>.wasm</code> file swapped in.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="lessons">
+  <div class="wrap reveal">
+    <div class="label">05 · Challenges and what I learned</div>
+    <h2>The model is only as good as its data.</h2>
+    <div class="lessons">
+      <div class="lesson big">
+        <div class="k">DATASET EXPANSION</div>
+        <h3>Improving accuracy by expanding the dataset</h3>
+        <p>My initial model could identify groups of more than two people as <code>negative</code>, but struggled to recognize exactly two people.</p>
+        <div class="compare">
+          <div class="before"><b>BEFORE</b>Groups of 3+ flagged. Exactly two people often missed.</div>
+          <div class="after"><b>AFTER</b>More two-person examples added, model retrained, web app rebuilt.</div>
+        </div>
+        <p>This taught me the importance of dataset diversity, identifying model limitations, and iteratively improving machine-learning systems based on their performance.</p>
+      </div>
+      <div class="lesson"><div class="k">WRONG EXPORT</div><h3>C++ doesn't run in a browser</h3><p>My first download was the C++ library for microcontrollers, which can't run in a browser. The right target was the WebAssembly export.</p></div>
+      <div class="lesson"><div class="k">BROWSER RULES</div><h3>MIME types and HTTPS</h3><p><code>.wasm</code> files must be served over HTTP with the right MIME type, and the camera needs HTTPS once the app is off <code>localhost</code>.</p></div>
+      <div class="lesson"><div class="k">LESSON</div><h3>Build in debugging from day one</h3><p>Visible raw output and an event log cut the time it took to find each problem.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="next">
+  <div class="wrap reveal">
+    <div class="label">06 · Limitations and future work</div>
+    <h2>An honest prototype, with a clear path forward.</h2>
+    <div class="two">
+      <div class="list lim">
+        <h3>Limitations</h3>
+        <ul>
+          <li>It's a whole-frame classifier. It can't tell how close a second person is, whether they're looking at the screen, or whether they're a legitimate bystander far away.</li>
+          <li>Accuracy depends on the training data matching the real camera angle, distance and lighting at the kiosk. I tested with a laptop webcam, not a kiosk-mounted camera.</li>
+          <li>This is a working prototype, not a production security product.</li>
+        </ul>
+      </div>
+      <div class="list fut">
+        <h3>Future work</h3>
+        <ul>
+          <li>Train on more data captured at real kiosk camera angles and heights.</li>
+          <li>Add a distance or proximity signal so far-away bystanders don't trigger alerts.</li>
+          <li>Trigger a response beyond a visual alert, such as a privacy shutter or a prompt to cover the PIN pad.</li>
+          <li>Port it to a Raspberry Pi or other low-cost hardware for deployment at agent points.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="try" style="border-bottom:none">
+  <div class="wrap reveal">
+    <div class="try">
+      <div>
+        <div class="label">Try it yourself</div>
+        <h2>See it flag a second person, live.</h2>
+        <p class="intro">Open the demo on a laptop with a webcam and bring a friend. Everything runs on your device.</p>
+        <div class="cta" style="margin-bottom:0">
+          <a class="btn primary" href="https://peaceful-smakager-9fbbc4.netlify.app/" target="_blank" rel="noopener">Open the live demo ↗</a>
+        </div>
+      </div>
+      <ol>
+        <li>Wait for <b>model ready</b> in the top-right corner.</li>
+        <li>Click <b>Start camera</b> and allow webcam access.</li>
+        <li>Click <b>Start watching</b>. With one person in frame, it reads <code>positive</code>.</li>
+        <li>Have a second person step in behind you and watch it turn red.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <a class="brand" href="#top"><span class="dot"></span>PERIMETER <small>· KIOSK WATCH</small></a>
+      <p style="margin-top:10px">A project by Suban Riaz.</p>
+    </div>
+    <div>
+      <b style="color:var(--text)">Credits and sources</b>
+      <ul>
+        <li>Model training and export: <a href="https://edgeimpulse.com" target="_blank" rel="noopener">Edge Impulse</a></li>
+        <li>Global card-fraud figures: The Nilson Report</li>
+        <li>Pakistan branchless-banking agent count: State Bank of Pakistan data, reported by Business Recorder</li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Simulated readout in the hero: alternates between one person (safe) and two (alert).
+  (function(){
+    const feed=document.getElementById('feed'), cls=document.getElementById('cls'), st=document.getElementById('st'),
+          bar=document.getElementById('bar'), conf=document.getElementById('conf'), log=document.getElementById('log');
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let alert=false;
+    function tick(){
+      alert=!alert;
+      feed.classList.toggle('alert',alert);
+      const c = alert ? (0.88+Math.random()*0.08) : (0.96+Math.random()*0.03);
+      cls.textContent = alert?'negative':'positive';
+      st.textContent = alert?'ALERT':'safe';
+      cls.className = st.className = 'val '+(alert?'bad':'ok');
+      bar.style.width=(c*100).toFixed(0)+'%';
+      bar.style.background = alert?'var(--alert)':'var(--safe)';
+      conf.textContent=c.toFixed(2);
+      if(alert){
+        const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        const d=document.createElement('div');
+        d.innerHTML='<b>negative '+c.toFixed(2)+'</b><span>'+t+'</span>';
+        log.prepend(d);
+        while(log.children.length>4) log.lastChild.remove();
+      }
+    }
+    setInterval(tick, 3200);
+  })();
+  // Fade sections in on scroll
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
