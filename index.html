@@ -7,46 +7,53 @@
 <meta name="description" content="Real-time shoulder-surfing detection for ATMs and agent-banking kiosks. Runs entirely in the browser with Edge Impulse and WebAssembly: no cloud, no stored footage. Built by Suban Riaz.">
 <meta property="og:title" content="Perimeter · Kiosk Watch">
 <meta property="og:description" content="On-device AI that flags shoulder surfing at ATMs and agent-banking kiosks. No cloud, no stored footage.">
-<meta name="theme-color" content="#0b0d0f">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%2353d18a' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='4' fill='%2353d18a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f6f7f4">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%23138a4f' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='4' fill='%23138a4f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0b0d0f; --panel:#121518; --panel-2:#181c20; --line:#23282d; --line-2:#30363d;
-    --text:#e7eaed; --muted:#8a939c; --soft:#b8c0c8;
-    --safe:#53d18a; --safe-dim:#53d18a1c;
-    --alert:#ff5a5f; --alert-dim:#ff5a5f1c;
-    --amber:#f5b84b;
+    --bg:#f6f7f4; --panel:#ffffff; --panel-2:#f1f3f0; --line:#e3e6e2; --line-2:#d2d7d2;
+    --text:#15191d; --muted:#69737c; --soft:#3d4650;
+    --safe:#138a4f; --safe-dim:#138a4f17; --safe-btn:#1a9d5c;
+    --alert:#d92d35; --alert-dim:#d92d3514;
+    --amber:#a86a00;
     --sans:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
     --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  /* the app preview and the code-flow box stay dark, like the real app */
+  .console, pre.flow{
+    --panel:#121518; --panel-2:#181c20; --line:#23282d; --line-2:#30363d;
+    --text:#e7eaed; --muted:#8a939c; --soft:#b8c0c8;
+    --safe:#53d18a; --safe-dim:#53d18a1c; --alert:#ff5a5f; --alert-dim:#ff5a5f1c;
+    color:var(--text);
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
   a{color:var(--safe);text-decoration:none}
   a:hover{text-decoration:underline}
-  ::selection{background:var(--safe);color:#04130a}
+  ::selection{background:#138a4f33;color:var(--text)}
   .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
   code{font-family:var(--mono);font-size:.88em;background:var(--panel-2);border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--soft)}
 
   /* nav */
-  nav{position:sticky;top:0;z-index:30;background:#0b0d0fe6;backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  nav{position:sticky;top:0;z-index:30;background:#f6f7f4e6;backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
   nav .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
   .brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-weight:700;letter-spacing:.08em;color:var(--text);font-size:.9rem}
   .brand:hover{text-decoration:none}
   .brand small{color:var(--muted);font-weight:400;letter-spacing:.14em;font-size:.72rem}
   .dot{width:9px;height:9px;border-radius:50%;background:var(--safe);box-shadow:0 0 0 0 var(--safe);animation:pulse 2s infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 #53d18a88}70%{box-shadow:0 0 0 8px #53d18a00}100%{box-shadow:0 0 0 0 #53d18a00}}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 #1a9d5c88}70%{box-shadow:0 0 0 8px #1a9d5c00}100%{box-shadow:0 0 0 0 #1a9d5c00}}
   nav ul{display:flex;gap:26px;list-style:none;margin:0;padding:0;align-items:center}
   nav ul a{color:var(--muted);font-size:.9rem}
   nav ul a:hover{color:var(--text);text-decoration:none}
-  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.95rem;padding:12px 20px;border-radius:9px;border:1px solid var(--line-2);color:var(--text);background:var(--panel-2);transition:transform .15s,border-color .15s,background .15s}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.95rem;padding:12px 20px;border-radius:9px;border:1px solid var(--line-2);color:var(--text);background:var(--panel);transition:transform .15s,border-color .15s,background .15s}
   .btn:hover{text-decoration:none;transform:translateY(-1px);border-color:var(--muted)}
-  .btn.primary{background:var(--safe);border-color:var(--safe);color:#04130a}
-  .btn.primary:hover{background:#6be09c}
-  nav ul a.btn.primary{color:#04130a}
+  .btn.primary{background:var(--safe);border-color:var(--safe);color:#fff}
+  .btn.primary:hover{background:#0f7a45;border-color:#0f7a45}
+  nav ul a.btn.primary{color:#fff}
   .btn.sm{padding:7px 14px;font-size:.84rem}
   .btn svg{width:16px;height:16px}
   @media (max-width:820px){nav ul li:not(:last-child){display:none}}
@@ -66,8 +73,8 @@
   /* hero */
   .hero{padding:64px 0 80px;position:relative;overflow:hidden}
   .hero::before{content:"";position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(700px 420px at 80% 35%,#53d18a14,transparent 65%),
-      linear-gradient(#ffffff04 1px,transparent 1px),linear-gradient(90deg,#ffffff04 1px,transparent 1px);
+    background:radial-gradient(700px 420px at 80% 35%,#1a9d5c1f,transparent 65%),
+      linear-gradient(#00000007 1px,transparent 1px),linear-gradient(90deg,#00000007 1px,transparent 1px);
     background-size:auto,32px 32px,32px 32px}
   .hero-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:48px;align-items:center;position:relative}
   @media (max-width:960px){.hero-grid{grid-template-columns:1fr}}
@@ -78,7 +85,7 @@
   .byline b{color:var(--text)}
 
   /* simulated console */
-  .console{background:var(--panel);border:1px solid var(--line-2);border-radius:14px;overflow:hidden;box-shadow:0 30px 80px -30px #000}
+  .console{background:var(--panel);border:1px solid var(--line-2);border-radius:14px;overflow:hidden;box-shadow:0 30px 70px -28px #1a2a2066}
   .console-top{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:.72rem;color:var(--muted)}
   .console-top .brand{font-size:.74rem}
   .pill{border:1px solid var(--line-2);border-radius:999px;padding:3px 10px}
@@ -142,7 +149,7 @@
   .stage h3{margin:8px 0 8px}
   .stage p{color:var(--soft);font-size:.93rem;margin:0}
   .stage .io{margin-top:14px;font-family:var(--mono);font-size:.72rem;color:var(--muted);border-top:1px dashed var(--line-2);padding-top:10px}
-  pre.flow{margin:28px 0 0;background:#07090a;border:1px solid var(--line);border-radius:12px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:.82rem;color:var(--soft);line-height:1.8}
+  pre.flow{margin:28px 0 0;background:#101316;border:1px solid var(--line);border-radius:12px;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:.82rem;color:var(--soft);line-height:1.8}
   pre.flow .a{color:var(--safe)} pre.flow .r{color:var(--alert)}
   .pixel{margin-top:22px;display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
   @media (max-width:640px){.pixel{grid-template-columns:1fr}}
@@ -194,12 +201,13 @@
   .list.fut li::before{content:"→";color:var(--safe)}
 
   /* try it */
-  .try{background:linear-gradient(135deg,#53d18a14,transparent 60%),var(--panel);border:1px solid var(--line-2);border-radius:18px;padding:40px;display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:center}
+  .try{background:linear-gradient(135deg,#1a9d5c1a,transparent 60%),var(--panel);border:1px solid var(--line-2);border-radius:18px;padding:40px;display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:center}
   @media (max-width:860px){.try{grid-template-columns:1fr;padding:28px}}
   .try ol{margin:0;padding-left:20px;color:var(--soft)}
   .try ol li{margin-bottom:8px}
   .try ol b{color:var(--text)}
 
+  .stat,.cls,.stage,.t,.lesson,.list,.note,.pixel,.try{box-shadow:0 1px 2px #0000000a}
   footer{padding:44px 0 60px;color:var(--muted);font-size:.9rem;border-top:1px solid var(--line)}
   footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
   footer ul{list-style:none;padding:0;margin:8px 0 0}
